@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: urlshortener-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: urlshortener
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: urlshortener-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    # image: url_shortener-backend:latest
+    container_name: urlshortener-backend
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: urlshortener
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BASE_URL: http://localhost:8000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:80,http://localhost,http://13.235.31.2:80
+    expose:
+      - "8000"  
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    # image: url_shortener-backend:latest
+    container_name: urlshortener-frontend
+    environment:
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
+      - API_BASE_URL=${API_BASE_URL}
+      - ENABLE_QR_CODE=${ENABLE_QR_CODE}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
