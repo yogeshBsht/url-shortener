@@ -8,7 +8,7 @@ and reliability on AWS.
 - `backend/` — FastAPI application (Python)
 - `frontend/` — React interface
 - `docker-compose.yml` — Local development (one command setup)
-- .env.example
+- `.env.example`
 
 ## Quick Start
 cp backend/.env.example backend/.env

@@ -10,8 +10,8 @@ const config = {
     "http://localhost:8000",
 
   enableQRCode:
-    window._env_?.ENABLE_QR_CODE === "true" ||
-    process.env.REACT_APP_ENABLE_QR_CODE === "true",
+    window._env_?.ENABLE_QR_CODE === "True" ||
+    process.env.REACT_APP_ENABLE_QR_CODE === "True",
 };
 
 export default config;
