@@ -11,9 +11,9 @@ and reliability on AWS.
 - `.env.example`
 
 ## Quick Start
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-cp .env.example .env
+cp backend/.env.example backend/.env  
+cp frontend/.env.example frontend/.env  
+cp .env.example .env  
 docker compose up
 
 ## Architecture Evolution
