@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     expose:
       - "5432"
+    networks:
+      - private
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,6 +26,8 @@ services:
     restart: unless-stopped
     expose:
       - "6379"
+    networks:
+      - private
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -40,6 +44,9 @@ services:
       REDIS_HOST: redis
     expose:
       - "8000"
+    networks:
+      - public
+      - private
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,8 +61,17 @@ services:
     env_file: .env
     ports:
       - "80:80"
+    networks:
+      - public
     depends_on:
       - backend
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data:
