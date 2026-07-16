@@ -10,9 +10,9 @@ from app.schemas import URLCreate, URLResponse, AnalyticsResponse, ClickStats
 from app.database import get_redis
 from app.config import get_settings
 from app.services.qr_service import generate_qr_code
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 settings = get_settings()
 redis_client = get_redis()
 
@@ -129,7 +129,7 @@ class URLService:
                 original_url
             )
         except Exception as e:
-            logger.warning(f"Failed to cache URL in Redis: {e}")
+            logger.warning("redis_cache_write_failed", error=str(e))
         
         # Use the frontend domain if provided, otherwise fall back to settings.base_url
         base = url_data.frontend_base_url.rstrip('/') if url_data.frontend_base_url else settings.base_url
@@ -141,7 +141,7 @@ class URLService:
                 short_url = f"{base}/{short_code}"
                 qr_code_data = generate_qr_code(short_url)
             except Exception as e:
-                logger.error(f"Failed to generate QR code: {e}")
+                logger.error("qr_code_generation_failed", error=str(e))
 
         return URLResponse(
             short_url=f"{base}/{short_code}",
@@ -172,10 +172,10 @@ class URLService:
         try:
             cached_url = redis_client.get(cache_key)
             if cached_url:
-                logger.info(f"Cache hit for {short_code}")
+                logger.info("cache_hit", short_code=short_code)
                 return cached_url
         except Exception as e:
-            logger.warning(f"Redis cache read failed: {e}")
+            logger.warning("redis_cache_read_failed", error=str(e))
         
         # Cache miss - query database
         url_obj = db.query(URL).filter(
@@ -204,7 +204,7 @@ class URLService:
                 url_obj.original_url
             )
         except Exception as e:
-            logger.warning(f"Failed to update cache: {e}")
+            logger.warning("redis_cache_update_failed", error=str(e))
         
         return url_obj.original_url
     
@@ -240,7 +240,7 @@ class URLService:
             db.add(click)
             db.commit()
         except Exception as e:
-            logger.error(f"Failed to track click: {e}")
+            logger.error("click_tracking_failed", error=str(e))
             db.rollback()
     
     @staticmethod

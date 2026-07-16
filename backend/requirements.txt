@@ -9,3 +9,4 @@ python-dotenv==1.0.0
 qrcode[pil]==7.4.2
 pillow==10.2.0
 python-multipart==0.0.6
+structlog==24.1.0

@@ -4,51 +4,45 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
-import logging
-import sys
-
+import structlog
 from app.config import get_settings
 from app.database import engine, Base, redis_client
 from app.api.routes import router
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
+from app.logging_config import configure_logging
+from app.middleware import RequestLoggingMiddleware
 
 settings = get_settings()
+
+# Configure structlog — every log line is now a single JSON object
+# (or a readable console line in debug mode).
+configure_logging(debug=settings.debug, log_level=settings.log_level)
+logger = structlog.get_logger()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    logger.info("Starting application...")
-    
+    logger.info("application_starting")
+
     # Create database tables
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
+        logger.info("database_tables_created")
     except Exception as e:
-        logger.error(f"Failed to create database tables: {e}")
-    
+        logger.error("database_tables_creation_failed", error=str(e))
+
     # Test Redis connection
     try:
         redis_client.ping()
-        logger.info("Redis connection established")
+        logger.info("redis_connection_established")
     except Exception as e:
-        logger.warning(f"Redis connection failed: {e}")
-    
+        logger.warning("redis_connection_failed", error=str(e))
+
     yield
-    
+
     # Shutdown
-    logger.info("Shutting down application...")
+    logger.info("application_shutting_down")
     redis_client.close()
 
 
@@ -61,6 +55,10 @@ app = FastAPI(
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
 )
+
+# Request logging middleware — assigns request_id, logs one JSON line
+# per request with path/method/status_code/duration_ms
+app.add_middleware(RequestLoggingMiddleware)
 
 # CORS Middleware
 app.add_middleware(
@@ -83,9 +81,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "message": error["msg"],
             "type": error["type"],
         })
-    
-    logger.warning(f"Validation error: {errors}")
-    
+
+    logger.warning("validation_error", errors=errors, path=request.url.path)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
@@ -98,8 +96,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(SQLAlchemyError)
 async def database_exception_handler(request: Request, exc: SQLAlchemyError):
     """Handle database errors."""
-    logger.error(f"Database error: {exc}")
-    
+    logger.error("database_error", error=str(exc), path=request.url.path)
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -112,8 +110,8 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected errors."""
-    logger.error(f"Unexpected error: {exc}", exc_info=True)
-    
+    logger.error("unexpected_error", error=str(exc), path=request.url.path, exc_info=True)
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -124,7 +122,6 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 # Include routes
-# app.include_router(router, prefix="/api")
 app.include_router(router, prefix="")
 
 
@@ -141,7 +138,7 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host=settings.host,

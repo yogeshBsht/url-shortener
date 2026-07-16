@@ -5,9 +5,9 @@ from app.database import get_db
 from app.schemas import URLCreate, URLResponse, AnalyticsResponse, HealthResponse, ErrorResponse
 from app.services.url_service import URLService
 from app.config import get_settings
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 settings = get_settings()
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def health_check(db: Session = Depends(get_db)):
         db.execute("SELECT 1")
         db_status = "healthy"
     except Exception as e:
-        logger.error(f"Database health check failed: {e}")
+        logger.error("database_health_check_failed", error=str(e))
         db_status = "unhealthy"
     
     # Check Redis
@@ -30,7 +30,7 @@ async def health_check(db: Session = Depends(get_db)):
         redis_client.ping()
         redis_status = "healthy"
     except Exception as e:
-        logger.error(f"Redis health check failed: {e}")
+        logger.error("redis_health_check_failed", error=str(e))
         redis_status = "unhealthy"
     
     overall_status = "healthy" if db_status == "healthy" and redis_status == "healthy" else "degraded"

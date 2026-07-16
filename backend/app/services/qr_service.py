@@ -2,9 +2,9 @@ import qrcode
 import io
 import base64
 from app.config import get_settings
-import logging
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 settings = get_settings()
 
 
@@ -47,5 +47,5 @@ def generate_qr_code(data: str, size: int = 10, border: int = 2) -> str:
         return f"data:image/png;base64,{img_base64}"
     
     except Exception as e:
-        logger.error(f"QR code generation failed: {e}")
+        logger.error("qr_code_generation_failed", error=str(e))
         return None
