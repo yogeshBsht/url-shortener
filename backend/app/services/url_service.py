@@ -178,6 +178,8 @@ class URLService:
             logger.warning("redis_cache_read_failed", error=str(e))
         
         # Cache miss - query database
+        logger.info("cache_miss", short_code=short_code)
+
         url_obj = db.query(URL).filter(
             URL.short_code == short_code,
             URL.is_active == True
