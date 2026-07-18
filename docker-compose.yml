@@ -37,6 +37,7 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    stop_grace_period: 35s
     env_file: .env
     environment:
       DATABASE_HOST: postgres
@@ -53,7 +54,7 @@ services:
         condition: service_healthy
     deploy:
       replicas: 2
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
 
   frontend:
     build: ./frontend
