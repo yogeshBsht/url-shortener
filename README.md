@@ -36,6 +36,16 @@ Then open `http://localhost` in your browser.
 
 See `.env.example` for all required variables (database, Redis, CORS, feature flags).
 
+## Running in prod-like mode locally
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Applies resource limits (mem_limit/cpus) and bounded log rotation
+(max 10MB × 3 files per container), approximating the target EC2
+instance's constraints — useful for catching resource-starvation or
+log-growth issues.
+
 ## AWS EC2 Deployment
 
 ### Prerequisites
@@ -67,8 +77,8 @@ See `.env.example` for all required variables (database, Redis, CORS, feature fl
 
 4. Enable memory overcommit for Redis background saves:
    ```bash
-      sudo sysctl vm.overcommit_memory=1
-      echo 'vm.overcommit_memory = 1' | sudo tee -a /etc/sysctl.conf
+   sudo sysctl vm.overcommit_memory=1
+   echo 'vm.overcommit_memory = 1' | sudo tee -a /etc/sysctl.conf
    ```
 
 5. Build and start:
