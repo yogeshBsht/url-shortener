@@ -39,11 +39,6 @@ export const getAnalytics = async (shortCode) => {
   return response.data;
 };
 
-export const healthCheck = async () => {
-  const response = await api.get('/health');
-  return response.data;
-};
-
 // Pass frontend_base_url so the backend builds short_url with the correct domain
 export const shortenURL = async (url, customAlias = null) => {
   const response = await fetch(`${config.apiBaseUrl}/api/shorten`, {

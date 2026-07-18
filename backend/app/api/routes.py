@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import RedirectResponse, JSONResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas import URLCreate, URLResponse, AnalyticsResponse, HealthResponse, ErrorResponse
+from app.schemas import URLCreate, URLResponse, AnalyticsResponse, ErrorResponse, LivenessResponse, ReadinessResponse
 from app.services.url_service import URLService
 from app.config import get_settings
 import structlog
@@ -12,35 +13,56 @@ settings = get_settings()
 router = APIRouter()
 
 
-@router.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check(db: Session = Depends(get_db)):
-    """Health check endpoint."""
-    
-    # Check database
+@router.get("/health/live", response_model=LivenessResponse, tags=["Health"])
+async def liveness_check():
+    """
+    Liveness probe — answers only 'is the process running and able
+    to respond at all?'. Deliberately does NOT touch the database or
+    Redis: a slow/down dependency should not cause an orchestrator to
+    kill and restart a perfectly healthy process (that would just
+    compound an outage). Should always return 200 as long as the
+    event loop is alive and this endpoint can execute.
+    """
+    return LivenessResponse(status="alive")
+
+
+@router.get("/health/ready", response_model=ReadinessResponse, tags=["Health"])
+async def readiness_check(db: Session = Depends(get_db)):
+    """
+    Readiness probe — answers 'can this instance actually serve
+    traffic right now?'. Checks the dependencies a request would
+    need: DB and Redis. Returns 503 (not 200) when not ready, so an
+    orchestrator/load balancer can correctly stop routing traffic to
+    this instance without restarting it — the process itself may be
+    fine, it just can't do useful work yet (e.g. DB still starting,
+    Redis briefly unreachable).
+    """
+    checks = {}
+
     try:
-        db.execute("SELECT 1")
-        db_status = "healthy"
+        db.execute(text("SELECT 1"))
+        checks["database"] = "healthy"
     except Exception as e:
-        logger.error("database_health_check_failed", error=str(e))
-        db_status = "unhealthy"
-    
-    # Check Redis
+        logger.error("database_readiness_check_failed", error=str(e))
+        checks["database"] = "unhealthy"
+
     try:
         from app.database import redis_client
         redis_client.ping()
-        redis_status = "healthy"
+        checks["redis"] = "healthy"
     except Exception as e:
-        logger.error("redis_health_check_failed", error=str(e))
-        redis_status = "unhealthy"
-    
-    overall_status = "healthy" if db_status == "healthy" and redis_status == "healthy" else "degraded"
-    
-    return HealthResponse(
-        status=overall_status,
-        version=settings.app_version,
-        database=db_status,
-        redis=redis_status,
-    )
+        logger.error("redis_readiness_check_failed", error=str(e))
+        checks["redis"] = "unhealthy"
+
+    is_ready = all(v == "healthy" for v in checks.values())
+
+    if not is_ready:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=ReadinessResponse(status="not_ready", version=settings.app_version, checks=checks).model_dump(),
+        )
+
+    return ReadinessResponse(status="ready", version=settings.app_version, checks=checks)
 
 
 @router.post(

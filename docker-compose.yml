@@ -42,6 +42,7 @@ services:
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
     expose:
       - "8000"
     networks:
@@ -52,9 +53,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       replicas: 2
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
 
   frontend:
     build: ./frontend
@@ -66,7 +72,8 @@ services:
     networks:
       - public
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 networks:
   public:

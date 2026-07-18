@@ -70,10 +70,13 @@ class ErrorResponse(BaseModel):
     error_code: Optional[str] = None
 
 
-class HealthResponse(BaseModel):
-    """Health check response schema."""
-    
+class LivenessResponse(BaseModel):
+    """Liveness probe response — process is running, nothing more."""
+    status: str
+
+
+class ReadinessResponse(BaseModel):
+    """Readiness probe response — can the instance serve traffic?"""
     status: str
     version: str
-    database: str
-    redis: str
+    checks: dict[str, str]
