@@ -65,12 +65,18 @@ See `.env.example` for all required variables (database, Redis, CORS, feature fl
    # set CORS_ORIGINS to include http://<EC2_PUBLIC_IP>
    ```
 
-4. Build and start:
+4. Enable memory overcommit for Redis background saves:
+   ```bash
+      sudo sysctl vm.overcommit_memory=1
+      echo 'vm.overcommit_memory = 1' | sudo tee -a /etc/sysctl.conf
+   ```
+
+5. Build and start:
    ```bash
    docker compose up --build -d
    ```
 
-5. Verify:
+6. Verify:
    ```bash
    docker compose ps                       # all services should show "Up"
    curl http://<EC2_PUBLIC_IP>/api/docs    # should return the FastAPI docs page

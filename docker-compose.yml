@@ -24,6 +24,7 @@ services:
     image: redis:7-alpine
     container_name: urlshortener-redis
     restart: unless-stopped
+    command: redis-server --maxmemory ${REDIS_MAXMEMORY} --maxmemory-policy allkeys-lru
     expose:
       - "6379"
     networks:
