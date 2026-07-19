@@ -9,7 +9,7 @@ and reliability on AWS.
 | Phase | Focus                          | Status      | Tag                  |
 |-------|---------------------------------|-------------|-----------------------|
 | 0     | Baseline monolith on EC2        | ✅ Done      | `phase-0-baseline`    |
-| 1     | Production-ready foundation     | ⏳ Planned   | —                      |
+| 1     | Production-ready foundation     | ✅ Done   |       `phase-1-foundation`                |
 | 2     | Observability                   | ⏳ Planned   | —                      |
 | 3     | AWS managed services            | ⏳ Planned   | —                      |
 | 4     | Load testing                    | ⏳ Planned   | —                      |
@@ -106,6 +106,16 @@ This project is being built in 4 phases.
 - Nginx and the React build share one container (will separate in a later phase)
 - No network segmentation — Redis/Postgres share the app's Docker network (Phase 1)
 - Single EC2 instance — no redundancy at the infra level (Phase 3)
+
+### Phase 1: Production-Ready Foundation
+
+<img src="docs/architecture/phase-1-architecture.svg" alt="Phase 1 architecture" width="600"/>
+
+#### Known Limitations
+- Nginx and the React build share one container
+- Single EC2 instance — no redundancy at the infra level
+- App-layer rate limiting, though unused, is broken if multiple backend replicas are deployed.
+- docker-compose.prod.yml resource limit values are placeholders. To be updated after load testing.
 
 ## Architecture Decisions
 
