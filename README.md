@@ -100,7 +100,7 @@ This project is being built in 4 phases.
 
 ### Phase 0: Baseline Architecture
 
-<img src="docs/architecture/phase-0-current.svg" alt="Phase 0 architecture" width="600"/>
+<img src="docs/architecture/phase-0.png" alt="Phase 0 architecture" width="600"/>
 
 #### Known Limitations
 - Nginx and the React build share one container (will separate in a later phase)
@@ -109,7 +109,7 @@ This project is being built in 4 phases.
 
 ### Phase 1: Production-Ready Foundation
 
-<img src="docs/architecture/phase-1-architecture.svg" alt="Phase 1 architecture" width="600"/>
+<img src="docs/architecture/phase-1.png" alt="Phase 1 architecture" width="600"/>
 
 #### Known Limitations
 - Nginx and the React build share one container
