@@ -10,7 +10,7 @@ and reliability on AWS.
 |-------|---------------------------------|-------------|-----------------------|
 | 0     | Baseline monolith on EC2        | ✅ Done      | `phase-0-baseline`    |
 | 1     | Production-ready foundation     | ✅ Done   |       `phase-1-foundation`                |
-| 2     | Observability                   | ⏳ Planned   | —                      |
+| 2     | Observability                   | 🚧 In Progress   | —                      |
 | 3     | AWS managed services            | ⏳ Planned   | —                      |
 | 4     | Load testing                    | ⏳ Planned   | —                      |
 
@@ -58,7 +58,7 @@ log-growth issues.
    ```bash
    git clone <repo-url>
    cd url-shortener
-   git checkout phase-0-baseline
+   git checkout phase-2-observability
    ```
 
 2. Some Ubuntu AMIs ship with Apache pre-installed and bound to port 80,
@@ -75,24 +75,46 @@ log-growth issues.
    # set CORS_ORIGINS to include http://<EC2_PUBLIC_IP>
    ```
 
-4. Enable memory overcommit for Redis background saves:
+4. Generate the nginx basic-auth file that gates Grafana:
+   ```bash
+   sudo apt-get update && sudo apt-get install -y apache2-utils
+   htpasswd -c frontend/.htpasswd admin
+   ```
+   This step must be repeated on every fresh EC2 instance; 
+   it will not come from `git pull` as `frontend/.htpasswd` is gitignored.
+
+5. Enable memory overcommit for Redis background saves:
    ```bash
    sudo sysctl vm.overcommit_memory=1
    echo 'vm.overcommit_memory = 1' | sudo tee -a /etc/sysctl.conf
    ```
 
-5. Build and start:
+6. Build and start:
    ```bash
    docker compose up --build -d
    ```
 
-6. Verify:
+7. Verify:
    ```bash
    docker compose ps                       # all services should show "Up"
    curl http://<EC2_PUBLIC_IP>/api/docs    # should return the FastAPI docs page
+   curl -i http://<EC2_PUBLIC_IP>/grafana/            # should return 401 (basic auth required)
+   curl -i -u admin:<password> http://<EC2_PUBLIC_IP>/grafana/   # should return 200
    ```
 
-6. Open `http://<EC2_PUBLIC_IP>` in a browser.
+8. Open `http://<EC2_PUBLIC_IP>` in a browser, and
+   `http://<EC2_PUBLIC_IP>/grafana/` for dashboards (basic-auth
+   prompt, then Grafana login).
+
+### Notes
+- Do not open ports 9090 (Prometheus) or 3000 (Grafana) in the
+  Security Group as both are reachable only through nginx on port 80,
+  by design. To inspect Prometheus's `/targets` page directly, use an
+  SSH tunnel instead of opening a port:
+```bash
+  ssh -L 9090:localhost:9090 ec2-user@<ec2-public-ip>
+```
+  then browse `http://localhost:9090/targets` locally.
 
 ## Architecture Evolution
 

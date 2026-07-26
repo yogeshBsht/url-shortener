@@ -56,3 +56,4 @@ htmlcov/
 lessons.md
 *.tar.gz
 docker-compose-local.yml
+frontend/.htpasswd
