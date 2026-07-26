@@ -10,6 +10,7 @@ from app.schemas import URLCreate, URLResponse, AnalyticsResponse, ClickStats
 from app.database import get_redis
 from app.config import get_settings
 from app.services.qr_service import generate_qr_code
+from app.metrics import CACHE_OPERATIONS
 import structlog
 
 logger = structlog.get_logger()
@@ -128,8 +129,10 @@ class URLService:
                 settings.redis_cache_ttl,
                 original_url
             )
+            CACHE_OPERATIONS.labels(operation="set", result="success").inc()
         except Exception as e:
             logger.warning("redis_cache_write_failed", error=str(e))
+            CACHE_OPERATIONS.labels(operation="set", result="error").inc()
         
         # Use the frontend domain if provided, otherwise fall back to settings.base_url
         base = url_data.frontend_base_url.rstrip('/') if url_data.frontend_base_url else settings.base_url
@@ -173,12 +176,15 @@ class URLService:
             cached_url = redis_client.get(cache_key)
             if cached_url:
                 logger.info("cache_hit", short_code=short_code)
+                CACHE_OPERATIONS.labels(operation="get", result="hit").inc()
                 return cached_url
         except Exception as e:
             logger.warning("redis_cache_read_failed", error=str(e))
+            CACHE_OPERATIONS.labels(operation="get", result="error").inc()
         
         # Cache miss - query database
         logger.info("cache_miss", short_code=short_code)
+        CACHE_OPERATIONS.labels(operation="get", result="miss").inc()
 
         url_obj = db.query(URL).filter(
             URL.short_code == short_code,
@@ -205,8 +211,10 @@ class URLService:
                 settings.redis_cache_ttl,
                 url_obj.original_url
             )
+            CACHE_OPERATIONS.labels(operation="set", result="success").inc()
         except Exception as e:
             logger.warning("redis_cache_update_failed", error=str(e))
+            CACHE_OPERATIONS.labels(operation="set", result="error").inc()
         
         return url_obj.original_url
     

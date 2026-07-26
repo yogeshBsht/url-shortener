@@ -4,6 +4,7 @@ import uuid
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from app.metrics import REQUEST_DURATION
 
 logger = structlog.get_logger()
 
@@ -45,4 +46,33 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             duration_ms=duration_ms,
         )
         response.headers["X-Request-ID"] = request_id
+        return response
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    """
+    Records http_request_duration_seconds for every request.
+
+    Uses the matched route *template* (e.g. "/api/{short_code}") as the
+    `endpoint` label, not the raw path — labeling by raw path would create
+    one time series per short code ever generated, an unbounded-cardinality
+    problem in Prometheus. Unmatched routes (404s) fall back to the raw
+    path since there's no route object; low-traffic enough not to worry
+    about for now.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration = time.perf_counter() - start
+
+        route = request.scope.get("route")
+        endpoint = route.path if route is not None else request.url.path
+
+        REQUEST_DURATION.labels(
+            method=request.method,
+            endpoint=endpoint,
+            status=response.status_code,
+        ).observe(duration)
+
         return response

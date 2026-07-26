@@ -76,6 +76,20 @@ services:
       backend:
         condition: service_healthy
 
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - public
+    depends_on:
+      backend:
+        condition: service_healthy
+
 networks:
   public:
     driver: bridge
@@ -85,3 +99,4 @@ networks:
 
 volumes:
   postgres_data:
+  prometheus_data:

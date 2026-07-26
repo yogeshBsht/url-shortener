@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 import redis
 from app.config import get_settings
+from app.metrics import DB_ACTIVE_CONNECTIONS
 
 settings = get_settings()
 
@@ -34,10 +35,12 @@ redis_client = redis.Redis(
 def get_db():
     """Dependency for database session."""
     db = SessionLocal()
+    DB_ACTIVE_CONNECTIONS.set(engine.pool.checkedout())
     try:
         yield db
     finally:
         db.close()
+        DB_ACTIVE_CONNECTIONS.set(engine.pool.checkedout())
 
 
 def get_redis():

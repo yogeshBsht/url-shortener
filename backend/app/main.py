@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -9,7 +9,8 @@ from app.config import get_settings
 from app.database import engine, Base, redis_client
 from app.api.routes import router
 from app.logging_config import configure_logging
-from app.middleware import RequestLoggingMiddleware
+from app.middleware import RequestLoggingMiddleware, MetricsMiddleware
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 settings = get_settings()
 
@@ -59,6 +60,7 @@ app = FastAPI(
 # Request logging middleware — assigns request_id, logs one JSON line
 # per request with path/method/status_code/duration_ms
 app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 
 # CORS Middleware
 app.add_middleware(
@@ -134,6 +136,16 @@ async def root():
         "version": settings.app_version,
         "docs": "/docs" if settings.debug else "Disabled in production",
     }
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    """
+    Prometheus scrape endpoint. Deliberately not proxied through nginx —
+    see ADR-003. Reachable only by containers on the `public` Docker
+    network (i.e. the Prometheus container itself).
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 if __name__ == "__main__":
