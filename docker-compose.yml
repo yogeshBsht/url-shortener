@@ -125,6 +125,17 @@ services:
       - "9100"
     networks:
       - public
+  
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis:6379"
+    expose:
+      - "9121"
+    networks:
+      - public
+      - private
 
 networks:
   public:
