@@ -24,3 +24,8 @@ DB_ACTIVE_CONNECTIONS = Gauge(
     "db_active_connections",
     "Active connections in the SQLAlchemy pool",
 )
+
+DB_POOL_SIZE = Gauge(
+    "db_pool_size",
+    "Configured maximum size of the SQLAlchemy connection pool",
+)

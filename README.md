@@ -94,7 +94,22 @@ log-growth issues.
    docker compose up --build -d
    ```
 
-7. Verify:
+7. Enable `pg_stat_statements` for query-performance metrics (one-time
+   per fresh database volume. It is required for the Database Health
+   dashboard's slow-query panel; `postgres_exporter` will log
+   `relation "pg_stat_statements" does not exist` until this is run):
+   ```bash
+   docker compose exec postgres env | grep POSTGRES   # confirm actual user/db values
+   docker compose exec postgres psql -U <actual_user> -d <actual_db> \
+     -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
+   docker compose restart postgres_exporter
+   ```
+   Use the literal values from the `env` check above, not shell
+   variables like `${POSTGRES_USER}` — those are only auto-exported
+   inside the container via `env_file`, not in your interactive shell,
+   and silently expand to empty/default values otherwise.
+
+8. Verify:
    ```bash
    docker compose ps                       # all services should show "Up"
    curl http://<EC2_PUBLIC_IP>/api/docs    # should return the FastAPI docs page
@@ -102,7 +117,7 @@ log-growth issues.
    curl -i -u admin:<password> http://<EC2_PUBLIC_IP>/grafana/   # should return 200
    ```
 
-8. Open `http://<EC2_PUBLIC_IP>` in a browser, and
+9. Open `http://<EC2_PUBLIC_IP>` in a browser, and
    `http://<EC2_PUBLIC_IP>/grafana/` for dashboards (basic-auth
    prompt, then Grafana login).
 

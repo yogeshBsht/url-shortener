@@ -1,0 +1,45 @@
+{
+  "uid": "database-health",
+  "title": "Database Health",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active Connections vs Pool Size",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(db_active_connections)", "legendFormat": "Active (total)" },
+        { "expr": "sum(db_pool_size)", "legendFormat": "Pool max (total)" }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Slowest Queries (mean exec time, ms, all-time)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "topk(5, 1000 * (pg_stat_statements_seconds_total / pg_stat_statements_calls_total))",
+          "legendFormat": "{{queryid}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      }
+    }
+  ]
+}

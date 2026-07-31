@@ -10,6 +10,7 @@ from app.database import engine, Base, redis_client
 from app.api.routes import router
 from app.logging_config import configure_logging
 from app.middleware import RequestLoggingMiddleware, MetricsMiddleware
+from app.metrics import DB_POOL_SIZE
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 settings = get_settings()
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     logger.info("application_starting")
+    DB_POOL_SIZE.set(settings.database_pool_size + settings.database_max_overflow)
 
     # Create database tables
     try:
