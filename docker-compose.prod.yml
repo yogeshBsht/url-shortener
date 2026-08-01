@@ -34,3 +34,48 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  prometheus:
+    mem_limit: 256m
+    cpus: 0.3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+     mem_limit: 256m
+     cpus: 0.3
+     logging:
+       driver: json-file
+       options:
+         max-size: "10m"
+         max-file: "3"
+
+  node_exporter:
+    mem_limit: 64m
+    cpus: 0.1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis_exporter:
+    mem_limit: 64m
+    cpus: 0.1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres_exporter:
+    mem_limit: 64m
+    cpus: 0.1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
