@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.schemas import URLCreate, URLResponse, AnalyticsResponse, ErrorResponse, LivenessResponse, ReadinessResponse
 from app.services.url_service import URLService
 from app.config import get_settings
+from app.metrics import RATE_LIMITED_TOTAL
 import structlog
 
 logger = structlog.get_logger()
@@ -178,3 +179,9 @@ async def get_analytics(short_code: str, db: Session = Depends(get_db)):
     - **short_code**: Short code or custom alias
     """
     return URLService.get_analytics(db, short_code)
+
+
+@router.get("/api/internal/rate-limited", include_in_schema=False)
+async def rate_limited_marker():
+    RATE_LIMITED_TOTAL.inc()
+    return Response(status_code=429)

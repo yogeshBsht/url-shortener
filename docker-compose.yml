@@ -150,13 +150,8 @@ services:
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
-    # volumes:
-    #   - ./postgres_exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
     command:
-      # - "--extend.query-path=/etc/postgres_exporter/queries.yaml"
       - "--collector.stat_statements"
-      # - "--collector.stat_statements.include_query"
-      # - "--collector.stat_statements.query_length=100"
     expose:
       - "9187"
     networks:

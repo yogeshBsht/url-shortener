@@ -20,6 +20,11 @@ CACHE_OPERATIONS = Counter(
     ["operation", "result"],  # operation: get|set — result: hit|miss|error
 )
 
+RATE_LIMITED_TOTAL = Counter(
+    "rate_limited_total",
+    "Total requests rejected by nginx rate limiting"
+)
+
 DB_ACTIVE_CONNECTIONS = Gauge(
     "db_active_connections",
     "Active connections in the SQLAlchemy pool",
