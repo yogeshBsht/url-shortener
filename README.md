@@ -10,7 +10,7 @@ and reliability on AWS.
 |-------|---------------------------------|-------------|-----------------------|
 | 0     | Baseline monolith on EC2        | ✅ Done      | `phase-0-baseline`    |
 | 1     | Production-ready foundation     | ✅ Done   |       `phase-1-foundation`                |
-| 2     | Observability                   | 🚧 In Progress   | —                      |
+| 2     | Observability                   | ✅ Done   |       `phase-2-observability`                |
 | 3     | AWS managed services            | ⏳ Planned   | —                      |
 | 4     | Load testing                    | ⏳ Planned   | —                      |
 
@@ -49,7 +49,12 @@ log-growth issues.
 ## AWS EC2 Deployment
 
 ### Prerequisites
-- EC2 instance running Ubuntu, with Docker and Docker Compose installed
+- EC2 instance running Ubuntu, with Docker and Docker Compose installed.
+  **t3.small (2GB) minimum recommended** as t3.micro (1GB) was found to
+  hit host-level OOM under the Phase 2 observability stack's load
+  testing (Prometheus + Grafana + 3 exporters add real memory pressure
+  on top of the app itself); confirmed via dmesg correlated against
+  the test window
 - Security Group inbound rules: port 80 (HTTP) and port 22 (SSH) open
 
 ### Steps
@@ -153,6 +158,21 @@ This project is being built in 4 phases.
 - Single EC2 instance — no redundancy at the infra level
 - App-layer rate limiting, though unused, is broken if multiple backend replicas are deployed.
 - docker-compose.prod.yml resource limit values are placeholders. To be updated after load testing.
+
+### Phase 2: Observability
+
+<img src="docs/architecture/phase-2.png" alt="Phase 2 architecture" width="600"/>
+
+#### Known Limitations
+- Nginx and the React build still share one container
+- Single EC2 instance — no redundancy at the infra level (Phase 3)
+- Slowest Queries dashboard shows queryid only, not query text due to
+  exporter version limitation
+- docker-compose.prod.yml resource limit values (including the new
+  observability containers) are still placeholders pending Phase 4's
+  real load-test numbers
+- t3.small confirmed sufficient for Phase 2's light/moderate load
+  testing; not yet validated under Phase 4's heavier load scenarios
 
 ## Architecture Decisions
 

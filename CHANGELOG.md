@@ -1,5 +1,53 @@
 # Changelog
 
+## [Phase 2] - Observability
+### Added
+- Prometheus scraping FastAPI metrics: http_request_duration_seconds
+  (Histogram, method/endpoint/status labels, endpoint labeled by route
+  template not raw path to bound cardinality), cache_operations_total
+  (Counter, get/set x hit/miss/success/error), db_active_connections
+  and db_pool_size (Gauges)
+- Per-replica Prometheus scraping via dns_sd_configs against the
+  `backend` DNS name, so both replicas are scraped as distinct targets
+  instead of one flip-flopping target via round-robin DNS
+- Grafana, reverse-proxied through nginx at /grafana/, gated behind
+  nginx basic-auth in front of Grafana's own login (defense in depth)
+- node_exporter (EC2 host CPU/memory/network/disk), dual-homed
+  redis_exporter and postgres_exporter (private+public networks, same
+  as backend) for Redis and Postgres-level metrics
+- postgres_exporter's built-in --collector.stat_statements enabled
+  (pg_stat_statements extension) for query-performance metrics
+- rate_limited_total counter + internal /api/internal/rate-limited
+  marker route, giving nginx-level 429 rejections visibility in
+  Grafana (previously invisible to the app's own metrics/logging)
+- 4 Grafana dashboards, auto-provisioned: Request Performance, Cache
+  Effectiveness, Database Health, System Resources
+- Resource limits (mem_limit/cpus) extended in docker-compose.prod.yml
+  to cover all 5 new observability containers
+- ADR-004 through ADR-007 documenting Phase 2's key design decisions
+
+### Fixed
+- postgres_exporter's queries.yaml/--extend.query-path mechanism
+  found deprecated/non-functional in v0.15.0; replaced with the
+  built-in --collector.stat_statements flag (query text label
+  unavailable in this exporter version — queryid only)
+- Grafana nginx proxy_pass self-redirect loop (trailing URI on
+  proxy_pass was stripping the /grafana prefix before Grafana saw it,
+  conflicting with GF_SERVER_SERVE_FROM_SUB_PATH)
+
+### Known Limitations
+- t3.micro found insufficient under Phase 2's load-test pattern;
+  confirmed host-level OOM via dmesg correlated against the test
+  window, even though all containers stayed healthy. t3.small
+  confirmed sufficient (load average <1, >1GB available memory)
+  under the same test. Minimum recommended instance size updated
+  accordingly.
+- Query text unavailable in the Slowest Queries dashboard panel
+  (queryid only); the exporter flag for this wasn't available in
+  the pinned exporter version; deferred rather than bumping versions
+  mid-phase.
+
+
 ## [Phase 1] - Foundation
 ### Added
 - Docker network segmentation: public (nginx↔api) and private (api↔redis↔postgres, internal: true)
