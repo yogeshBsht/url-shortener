@@ -1,11 +1,13 @@
 services:
   pgbouncer:
-    image: edoburu/pgbouncer:1.25.2-p0
+    image: edoburu/pgbouncer:v1.25.2-p0
     container_name: urlshortener-pgbouncer
     restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: "postgres://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DB}"
+      AUTH_TYPE: scram-sha-256
+      LISTEN_PORT: 6432
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 200        # connections FROM backend replicas TO pgbouncer
       DEFAULT_POOL_SIZE: 15       # connections FROM pgbouncer TO RDS
@@ -16,9 +18,10 @@ services:
     expose:
       - "6432"
     networks:
+      - public
       - private
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/6432'"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "6432"]
       interval: 10s
       timeout: 5s
       retries: 5
