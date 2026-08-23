@@ -1,27 +1,24 @@
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: urlshortener-db
+  pgbouncer:
+    image: edoburu/pgbouncer:1.25.2-p0
+    container_name: urlshortener-pgbouncer
     restart: unless-stopped
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    command:
-       - "postgres"
-       - "-c"
-       - "shared_preload_libraries=pg_stat_statements"
-       - "-c"
-       - "pg_stat_statements.track=all"
+      DATABASE_URL: "postgres://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DB}"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200        # connections FROM backend replicas TO pgbouncer
+      DEFAULT_POOL_SIZE: 15       # connections FROM pgbouncer TO RDS
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 3
+      ADMIN_USERS: ${RDS_USER}
     expose:
-      - "5432"
+      - "6432"
     networks:
       - private
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/6432'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,7 +44,8 @@ services:
     stop_grace_period: 35s
     env_file: .env
     environment:
-      DATABASE_HOST: postgres
+      DATABASE_HOST: pgbouncer
+      DATABASE_PORT: 6432        # was 5432 — now pointing at pgbouncer, not Postgres directly
       REDIS_HOST: redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
     expose:
@@ -56,7 +54,7 @@ services:
       - public
       - private
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -147,7 +145,7 @@ services:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DB}?sslmode=require"
     command:
       - "--collector.stat_statements"
     expose:
@@ -155,9 +153,6 @@ services:
     networks:
       - public
       - private
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 networks:
   public:

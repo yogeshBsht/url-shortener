@@ -1,7 +1,7 @@
 services:
-  postgres:
-    mem_limit: 256m
-    cpus: 0.5
+  pgbouncer:
+    mem_limit: 64m
+    cpus: 0.15
     logging:
       driver: json-file
       options:
