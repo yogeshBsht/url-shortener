@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     redis_db: int = 0
     redis_password: str = ""
     redis_cache_ttl: int = 86400  # 24 hours
+    redis_ssl: bool = False
 
     # URL Configuration
     base_url: str

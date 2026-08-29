@@ -11,7 +11,7 @@ and reliability on AWS.
 | 0     | Baseline monolith on EC2        | ✅ Done      | `phase-0-baseline`    |
 | 1     | Production-ready foundation     | ✅ Done   |       `phase-1-foundation`                |
 | 2     | Observability                   | ✅ Done   |       `phase-2-observability`                |
-| 3     | AWS managed services            | ⏳ Planned   | —                      |
+| 3     | AWS managed services            | 🚧 In Progress   | —                      |
 | 4     | Load testing                    | ⏳ Planned   | —                      |
 
 ## Project Structure

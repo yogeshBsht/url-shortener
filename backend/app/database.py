@@ -21,7 +21,7 @@ Base = declarative_base()
 
 
 # Redis Cache
-redis_client = redis.Redis(
+_redis_kwargs = dict(
     host=settings.redis_host,
     port=settings.redis_port,
     db=settings.redis_db,
@@ -30,6 +30,12 @@ redis_client = redis.Redis(
     socket_connect_timeout=5,
     socket_timeout=5,
 )
+
+if settings.redis_ssl:
+    _redis_kwargs["ssl"] = True
+    _redis_kwargs["ssl_cert_reqs"] = "required"
+
+redis_client = redis.Redis(**_redis_kwargs)
 
 
 def get_db():
