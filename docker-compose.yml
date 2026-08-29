@@ -5,7 +5,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: "postgres://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DB}"
+      DB_HOST: ${RDS_HOST}
+      DB_PORT: 5432
+      DB_USER: ${RDS_USER}
+      DB_PASSWORD: ${RDS_PASSWORD}
+      DB_NAME: ${RDS_DB}
       AUTH_TYPE: scram-sha-256
       LISTEN_PORT: 6432
       POOL_MODE: transaction
@@ -34,7 +38,6 @@ services:
     environment:
       DATABASE_HOST: pgbouncer
       DATABASE_PORT: 6432        # was 5432 — now pointing at pgbouncer, not Postgres directly
-      REDIS_HOST: redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
     expose:
       - "8000"
@@ -149,6 +152,5 @@ networks:
     internal: true
 
 volumes:
-  postgres_data:
   prometheus_data:
   grafana_data:
