@@ -1,0 +1,57 @@
+services:
+  prometheus:
+    image: ${ECR_REGISTRY}/mirror-prometheus:v2.53.0
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"    # not opened in the SG; reached only via SSM port forwarding, per README's existing convention
+    networks:
+     - monitoring
+
+  grafana:
+    image: ${ECR_REGISTRY}/mirror-grafana:11.1.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"    # SG restricts source to ASG instances' SG only
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  redis_exporter:
+    image: ${ECR_REGISTRY}/mirror-redis-exporter:v1.62.0
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "rediss://${REDIS_HOST}:6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - monitoring
+
+  postgres_exporter:
+    image: ${ECR_REGISTRY}/mirror-postgres-exporter:v0.15.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DB}?sslmode=require"
+    command:
+      - "--collector.stat_statements"
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,36 @@
+services:
+  pgbouncer:
+    mem_limit: 64m
+    cpus: 0.15
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    mem_limit: 128m
+    cpus: 0.25
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node_exporter:
+    mem_limit: 64m
+    cpus: 0.1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
