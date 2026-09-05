@@ -43,7 +43,7 @@ server {
     # is never exposed directly. Restricted to the monitoring instance's
     # private IP — same defense-in-depth pattern as /grafana's auth_basic.
     location /metrics {
-        allow <MONITORING_INSTANCE_PRIVATE_IP>/32;
+        allow ${MONITORING_PRIVATE_IP}/32;
         deny all;
         proxy_pass http://backend:8000/metrics;
         proxy_set_header Host $host;
@@ -67,7 +67,7 @@ server {
         # Grafana now runs on the dedicated monitoring instance, not this
         # host. Docker DNS resolution ("grafana") no longer applies once
         # nginx and Grafana are on different EC2 instances.
-        proxy_pass http://<MONITORING_INSTANCE_PRIVATE_IP>:3000;
+        proxy_pass http://${MONITORING_PRIVATE_IP}:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
