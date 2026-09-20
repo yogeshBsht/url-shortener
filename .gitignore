@@ -57,3 +57,15 @@ lessons.md
 *.tar.gz
 docker-compose-local.yml
 frontend/.htpasswd
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfplan
+infra/tfplan
+infra/destroy.tfplan
+infra/terraform.tfvars
+infra/*.auto.tfvars.json
+infra/crash.log
+infra/state-baseline-*.txt
