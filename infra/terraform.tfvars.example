@@ -1,0 +1,8 @@
+account_id           = "058264XXXXXX"
+golden_ami_id        = "ami-xxxxxxxxxxxxxxxxx"
+key_pair_name        = "your-key-pair-name"
+rds_master_username  = "postgres"
+rds_master_password  = "CHANGE_ME"
+redis_auth_token     = "CHANGE_ME_16_TO_128_CHARS"
+grafana_admin_password = "<a-real-password>"
+grafana_proxy_password = "<a-real-password>"
