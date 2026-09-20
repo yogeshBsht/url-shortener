@@ -18,9 +18,8 @@ RUN npm run build
 # Serve stage
 FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
-RUN apk add --no-cache gettext
+RUN apk add --no-cache gettext apache2-utils
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY .htpasswd /etc/nginx/.htpasswd
 
 # Copy and enable the runtime entrypoint
 COPY entrypoint.sh /entrypoint.sh

@@ -9,6 +9,10 @@ window._env_ = {
 };
 EOF
 
+# Generate the basic-auth file at runtime from SSM-sourced credentials,
+# instead of requiring a manual htpasswd run before every image build.
+htpasswd -cb /etc/nginx/.htpasswd "${GRAFANA_ADMIN_USER}" "${GRAFANA_ADMIN_PASSWORD}"
+
 # Render nginx.conf from template — substitutes only MONITORING_PRIVATE_IP,
 # explicitly scoped so envsubst doesn't touch nginx's own $host/$scheme/etc.
 # runtime variables, which aren't shell env vars but are worth guarding
