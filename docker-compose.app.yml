@@ -1,0 +1,94 @@
+services:
+  pgbouncer:
+    image: ${ECR_REGISTRY}/mirror-pgbouncer:v1.25.2-p0
+    container_name: urlshortener-pgbouncer
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: ${RDS_HOST}
+      DB_PORT: 5432
+      DB_USER: ${RDS_USER}
+      DB_PASSWORD: ${RDS_PASSWORD}
+      DB_NAME: ${RDS_DB}
+      AUTH_TYPE: scram-sha-256
+      LISTEN_PORT: 6432
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200        # connections FROM backend replicas TO pgbouncer
+      DEFAULT_POOL_SIZE: 15       # connections FROM pgbouncer TO RDS
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 3
+      ADMIN_USERS: ${RDS_USER}
+    expose:
+      - "6432"
+    networks:
+      - public
+      - private
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "6432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${ECR_REGISTRY}/urlshortener-backend:${IMAGE_TAG}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    env_file: .env
+    environment:
+      DATABASE_HOST: pgbouncer
+      DATABASE_PORT: 6432
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --timeout-graceful-shutdown 30
+    expose:
+      - "8000"
+    networks:
+      - public
+      - private
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      replicas: 2
+
+  frontend:
+    image: ${ECR_REGISTRY}/urlshortener-frontend:${IMAGE_TAG}
+    container_name: urlshortener-frontend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "80:80"
+    networks:
+      - public
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  node_exporter:
+    image: ${ECR_REGISTRY}/mirror-node-exporter:v1.8.2
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host/root'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    ports:
+      - "9100:9100"     # was expose-only; monitoring instance must reach this across hosts
+    networks:
+      - public
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+    internal: true
