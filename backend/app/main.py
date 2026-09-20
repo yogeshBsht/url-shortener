@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 from contextlib import asynccontextmanager
 import structlog
 from app.config import get_settings
@@ -35,6 +36,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("database_tables_creation_failed", error=str(e))
 
+    try:
+        ensure_extensions()
+        logger.info("pg_extenstion_created")
+    except Exception as e:
+        logger.error("pg_extension_creation_failed", error=str(e))
+
     # Test Redis connection
     try:
         redis_client.ping()
@@ -47,6 +54,12 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("application_shutting_down")
     redis_client.close()
+
+
+def ensure_extensions():
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_stat_statements"))
+        conn.commit()
 
 
 # Create FastAPI app
