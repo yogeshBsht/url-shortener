@@ -51,7 +51,10 @@ locals {
     cd "$APP_DIR"
     aws s3 cp "s3://$${S3_BUCKET}/app-config.tar.gz" ./app-config.tar.gz
     tar xzf app-config.tar.gz
-    aws ssm get-parameter --name /urlshortener/env --with-decryption --query 'Parameter.Value' --output text > .env
+    until aws ssm get-parameter --name /urlshortener/env --with-decryption --query 'Parameter.Value' --output text > .env 2>/dev/null; do
+      echo "SSM parameter not ready yet, retrying in 10s..."
+      sleep 10
+    done
 
     aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin "$${ECR_REGISTRY}"
     ECR_REGISTRY="$${ECR_REGISTRY}" IMAGE_TAG="latest" \
