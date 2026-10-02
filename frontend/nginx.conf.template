@@ -15,7 +15,9 @@ server {
         limit_req_status 429;
         error_page 429 = @rate_limited;
 
-        proxy_pass http://backend:8000;
+        resolver 127.0.0.11 valid=10s;
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -45,7 +47,9 @@ server {
     location /metrics {
         allow ${MONITORING_PRIVATE_IP}/32;
         deny all;
-        proxy_pass http://backend:8000/metrics;
+        resolver 127.0.0.11 valid=10s;
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream/metrics;
         proxy_set_header Host $host;
     }
 
